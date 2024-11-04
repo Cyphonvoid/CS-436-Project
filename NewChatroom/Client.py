@@ -3,7 +3,7 @@ import time
 import threading
 import os
 import subprocess
-
+from Message import Messenger
 
 CLIENT_EXIT_CODE = '--exit--'
 
@@ -117,7 +117,7 @@ class  ReverseShell():
     def run(self):
         pass
 
-    
+
 
 class Connection():
 
@@ -208,6 +208,7 @@ class WebClient():
         self.remote_address = None
         self.client_id = ComponentID('client_id', name)
         self.status = Status(False)
+        self.messenger = Messenger()
         #self.shell = ReverseShell()
 
 
@@ -287,21 +288,37 @@ class WebClient():
         #Need to detect if the socket on the other side has gone, offline or clsoed
         val = None
         if(self.connection.active() == True):
-            val = self.connection.send_data(message)
-            print("[SENT]: ", message)
+
+            # --- Sending message using messenger ----
+            self.messenger.set_request_message(message)
+            packed_msg = self.messenger.pack_request_body()
+            val = self.connection.send_data(packed_msg)
+            print("[SENT]: ", self.messenger.get_request_message())
+            self.messenger.flush()
+            # ---- End of the section ----------
+
+
+            #val = self.connection.send_data(message)
+            #print("[SENT]: ", message)
         return val
 
-    
+
     def recieve_message(self):
         #Need to detech if the socket on the other side has gone, offline or closed
         message = None
         if(self.connection.active()):
             message = self.connection.recieve_data()
         
-        if(isinstance(message, bool) == False):
+        # --- Use messenger object to process data here in ----- 
+        self.messenger.unpack_request_body(message)
+        print("[RECIEVED]:", self.messenger.get_request_message())
+        self.messenger.flush()
+        # ------------------- End of section ------------------
+
+        '''if(isinstance(message, bool) == False):
             if(message[0] != '-'):print("[Recieved]: ", message)
         if(message!= None and isinstance(message, bool) == False): self.process(message)
-        print("[RECIEVED]:", message)
+        print("[RECIEVED]:", message)'''
         return message
 
     def close(self):
@@ -313,10 +330,6 @@ class WebClient():
 
 
 client = WebClient('Jaedon')
-client.connect_to('192.168.1.222', 9999).run()
+client.connect_to('100.77.41.62', 9999).run()
 print("test", client.get_card().read().name())
 client.close()
-
-#NOTE: 1) Needs multiclient support
-#      2) Protocol implementation
-#      3) 
