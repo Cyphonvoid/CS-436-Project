@@ -217,9 +217,16 @@ class ClientHandle():
         self._display_messages = True
         self.callback = None
 
+        self._forwarding_ip = None
+        self._forwarding_port = None
         
     def attach_callback(self, callback):
         self.callback = callback
+
+    def load_forwarding_source(self, ip, port):
+        self._forwarding_ip = ip 
+        self._forwarding_port = port
+       
 
     def send_message(self, message):
         if(self.status.get() == False):
@@ -250,25 +257,25 @@ class ClientHandle():
         #value = self.storage().read_recieved()
         return value
 
-
+    
     def print(self):
         print("Socket Information:", " Remote: ", self.remote_address())
         pass
-
+    
     def local_address(self):
         return self._local_address
     
     def remote_address(self):
         return self._remote_address
-
+    
     def shutdown(self):
         self.sender.shutdown()
         self.reciever.shutdown()
-       
+    
     def reboot(self):
         self.sender.reboot(self.socket, self)
         self.reciever.reboot(self.socket, self)
-
+    
     def open(self):
         #print("in handle open()")
         self.status.set_true()
@@ -308,7 +315,7 @@ class Listener():
         self.connection_state = Status(False)
         self.callback = None
         self.callback_arg = None
-        self.IP = None
+        self.ip = None
         self.port = None
 
     def __produce_sockets__(self):
