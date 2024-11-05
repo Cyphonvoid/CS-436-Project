@@ -256,6 +256,11 @@ class MultiClientServer():
     
 
 
+class ChatroomServer():
+
+    def __init__(self) -> None:
+        pass
+
 server = MultiClientServer()
 server.run('100.77.41.62', 9999)
 server.close()
