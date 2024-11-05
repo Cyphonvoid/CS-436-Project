@@ -20,7 +20,7 @@ class Messenger():
             'PAYLOAD':None,
             'TIME_STAMP':None
         }
-
+ 
     def flush(self):
         for key, value in self._message_headers.items():
             self._message_headers[key] = None
