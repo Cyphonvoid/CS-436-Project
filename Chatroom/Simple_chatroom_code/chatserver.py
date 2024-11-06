@@ -1,9 +1,16 @@
 import socket
 from threading import Thread
+#from chatclient import user
+number_clients = 0
+
+
+
+
 
 # Create and Bind a TCP Server Socket
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host_name = socket.gethostname()
+host_name = socket.gethostname() 
+#socket.gethostname() "localhost"
 s_ip = socket.gethostbyname(host_name)
 port = 18000
 serverSocket.bind((host_name, port))
@@ -12,8 +19,8 @@ serverSocket.bind((host_name, port))
 print("Socket Bound")
 print("Server IP: ", s_ip, " Server Port:", port)
 
-# Listens for 10 Users
-serverSocket.listen(10)
+# Listens for 3 Users
+serverSocket.listen(3)
 
 # Creates a set of clients
 client_List = set()
@@ -25,9 +32,10 @@ def clientWatch(cs):
     while True:
         try:
             # Constantly listens for incoming message from a client
+
             msg = cs.recv(1024).decode()
 
-            # if user enters admin as user name set admin Flag to 1, let server and client know admin connected
+
             if msg == "admin":
                 adminFlag = 1
                 print("Admin Connected")
@@ -40,6 +48,7 @@ def clientWatch(cs):
             if msg == "q":
                 print("Client Disconnected")
                 client_List.remove(cs)
+                number_clients = number_clients - 1
                 cs.close()
 
                 break
@@ -73,10 +82,16 @@ while True:
     # Continues to listen / accept new clients
     client_socket, client_address = serverSocket.accept()
     print(client_address, "Connected!")
+    number_clients = number_clients + 1
 
     # Adds the client's socket to the client set
-    client_List.add(client_socket)
-
+    # if(number_clients <= 3):
+    #     client_List.add(client_socket)
+    #     #user.NUMBER = user.NUMBER + 1
+    # else:
+    #     denyMsg = "self.NUMBER"
+    #     client_socket.send(denyMsg.encode())
+    
     # Create a thread that listens for each client's messages
     t = Thread(target=clientWatch, args=(client_socket,))
 
