@@ -34,8 +34,7 @@ class MultiClientServer():
         self.current_client = None
         self.status = Status(False)
         self.input = Input(True)
-        self.processing_thread = threading.Thread(target=self.__request_processing_thread__, daemon=True)
-        self.recieving_thread = threading.Thread(target=self.__reciever_thread, daemon=True)
+        self.reciever_thread = threading.Thread(target=self.__thread__, daemon=True)
         self.messenger = Messenger()
         self.send_all_flag = False
 
@@ -52,16 +51,16 @@ class MultiClientServer():
         print(str(address) + " got disconnected....")
         self.current_client = None
 
-    def __request_processing_thread__(self):
+    def __thread__(self):
         #This thread needs to be synchronized with the main thread when deleting stuff like current client
         while self.status.get() == True:
-            value = self.__process_requests()
+            value = self.recieve_message()
             if(value == ERROR.RECIEVER):
                 self.filter_clients(self.current_client)
                 self.current_client = None
             
-            #if(self.current_client == None):
-            #    time.sleep(0.01)
+            if(self.current_client == None):
+                time.sleep(1)
                 
     def select_client(self, num):
 
@@ -126,48 +125,31 @@ class MultiClientServer():
 
 
     def __send_beacon_responses(self, message):
-        if(len(message) == 0):
-            return 
-        
         # If many message is an entire list
         if(isinstance(message, (list, tuple)) == True):
 
             for msg in message:
-                username = msg['MESSAGE']['USERNAME']
+                
                 for client in self.clients:
-                    card = client.get_identity_card()
-
-                    if(card['NAME'] != username):
-                        # Send the text data here
-                        self.messenger.set_request_body(msg['MESSAGE'])
-                        packed_msg = self.messenger.pack_request_body()
-                        client.send_message(packed_msg)
+                    
+                    # Send the text data here
+                    packed_msg = self.messenger.pack_request_body(msg)
+                    client.send_message(packed_msg)
 
                     # Send the image data from here
 
         # If message is just a message
         else:
-            username = message['USERNAME']
+            username = message['MESSAGE']['USERNAME']
             for client in self.clients:
-                card = client.get_identity_card()
-                if(card['NAME'] != username):
-                    # Send text data here
-                    packed_msg = self.messenger.pack_request_body(message)
-                    client.send_message(packed_msg)
+                if(client.)
+                # Send text data here
+                packed_msg = self.messenger.pack_request_body(message)
+                client.send_message(packed_msg)
 
                 # Send the image data here
-    
 
-    def __arrange_requests(self, requests):
-        _dict = {}
-        for req in requests: 
-            _dict[req['MESSAGE']['CONVERTED_TIME']] = req
-        sorted_order = sorted([key for key in _dict.keys()], reverse=False)
-        ascending_order_reqs = [_dict[timestamp] for timestamp in _dict.keys()]
-
-        return ascending_order_reqs
-    
-    def __perform_server_actions(self, requests):
+    def __process_requests(self, requests):
 
         for request in requests:
 
@@ -177,30 +159,41 @@ class MultiClientServer():
 
             # Check to see if user wants to quit
 
-            # Other conditions and rules.....
+            # Other conditions and rules...
             break
-            
-    def __process_requests(self):
+           
+    def listen_messages(self):
         new_requests = self.client_listener.access_message_storage().read_new_messages()
-
-        # Make the request in ascending order of their time when they were sent
-        new_requests = self.__arrange_requests(new_requests)
-
+        
         # Process each message
-        self.__perform_server_actions(new_requests)
+        # self.__process_requests(new_requests)
 
         # Relay messages 
         self.__send_beacon_responses(new_requests)
         
 
-    def __reciever_thread(self):
-        while(True):
+    def recieve_message(self):
 
-            # Constantly listen to message and store them globally
-            for client in self.clients:
-                client.recieve_message()
-
-            time.sleep(0.01)
+        if(len(self.clients) == 0 or self.current_client == None):return None
+        
+        message = None
+        try:
+            if(self.current_client.state() == True):
+                message = self.current_client.recieve_message()
+                if(message == ERROR.RECIEVER):
+                    print("[Error recieved]:", ERROR.RECIEVER)
+                    return False
+                
+                self.messenger.unpack_request_body(message)
+                print("Recieved from:", self.current_client.remote_address(), self.messenger.get_request_message())
+                self.messenger.flush()
+                return message
+            else:
+                return False
+            
+        except Exception as error:
+            print("[Error recieved]:", error)
+            return False
 
     
     def __clients(self):
@@ -242,8 +235,7 @@ class MultiClientServer():
         self.client_listener.host_with(IP, PORT)
         self.client_listener.open()
         self.display()
-        self.processing_thread.start()
-        #self.recieving_thread.start()
+        self.reciever_thread.start()
         
         while True:
             val = input()
@@ -312,5 +304,5 @@ class ChatroomServer():
         pass
 
 server = MultiClientServer()
-server.run('100.77.26.140', 9999)
+server.run('100.77.41.62', 9999)
 server.close()

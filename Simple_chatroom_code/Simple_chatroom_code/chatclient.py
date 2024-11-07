@@ -38,7 +38,7 @@ class Message():
 
 # Sets the preselected IP and port for the chat server
 # Eneter your machine's IP address for the host_name. Alternatively, you can enter "localhost"
-host_name = "192.168.1.1"
+host_name = "100.77.26.140"
 port = 18000
 
 # Creates the TCP socket

@@ -1,4 +1,5 @@
-
+import json
+import datetime
 
 class Status():
 
@@ -81,3 +82,8 @@ class Molecule():
 
 class Receptor():
     pass
+
+
+a = datetime.datetime.now()
+
+print(a.hour, a.minute, a.second, a.microsecond)

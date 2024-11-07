@@ -4,6 +4,8 @@ import threading
 import os
 import subprocess
 from Message import Messenger
+import json 
+
 
 CLIENT_EXIT_CODE = '--exit--'
 
@@ -68,7 +70,15 @@ class _ID():
 
         elif(cat == 'setters'):
             return self.setter
-        
+    
+    def get_dict(self):
+        _dict = {
+            'ID':self.identifier_token,
+            'NAME':self._name,
+            'EXPIRATION_DATE':self.expiration_date
+        }
+
+        return _dict
 
 class ComponentID():
     
@@ -81,6 +91,8 @@ class ComponentID():
     def write(self):
         return self.ComponentID.attribute_category('setters')
 
+    def get_dict(self):
+        return self.ComponentID.get_dict()
 
 class PROTOCOL():
 
@@ -291,6 +303,7 @@ class WebClient():
 
             # --- Sending message using messenger ----
             self.messenger.set_request_message(message)
+            self.messenger.set_request_field('USERNAME', self.client_id.read().name())
             packed_msg = self.messenger.pack_request_body()
             val = self.connection.send_data(packed_msg)
             print("[SENT]: ", self.messenger.get_request_message())
@@ -302,6 +315,13 @@ class WebClient():
             #print("[SENT]: ", message)
         return val
 
+    def __process_if_protocol_command(self, message):
+
+        if(message == '--GET_IDENTITY_CARD--' ):
+            _id = self.client_id.get_dict()
+            sent = self.connection.send_data(json.dumps(_id))
+            print("Sent ID CARD....")
+            return True
 
     def recieve_message(self):
         #Need to detech if the socket on the other side has gone, offline or closed
@@ -309,10 +329,18 @@ class WebClient():
         if(self.connection.active()):
             message = self.connection.recieve_data()
         
+        # ---- If there's any request as command/protocol
+        _is_command = self.__process_if_protocol_command(message)
+        if(_is_command):return
+        # ------------------------------------------------------
+
         # --- Use messenger object to process data here in ----- 
         self.messenger.unpack_request_body(message)
-        print("[RECIEVED]:", self.messenger.get_request_message())
+        username = self.messenger.get_request_field('USERNAME')
+        timestamp = self.messenger.get_request_field('TIME_STAMP')
+        print("{}:".format(username), self.messenger.get_request_message())
         self.messenger.flush()
+
         # ------------------- End of section ------------------
 
         '''if(isinstance(message, bool) == False):
@@ -330,6 +358,6 @@ class WebClient():
 
 
 client = WebClient('Jaedon')
-client.connect_to('100.77.41.62', 9999).run()
-print("test", client.get_card().read().name())
+client.connect_to('100.77.26.140', 9999).run()
+print("Name:", client.get_card().read().name())
 client.close()

@@ -1,7 +1,8 @@
 import threading
 import socket
 from Utility import *
-
+from Message import *
+import json
 
 ERROR_CODE_SE = '--sender error--'
 ERROR_CODE_RE = '--reciever error--'
@@ -107,7 +108,6 @@ class Reciever():
         message = None
         try:
             message = self.socket.recv(1024).decode('utf-8')
-
             if(message == None or message == CLOSE_CONNECTION):
                 self.status.set_false()
                 self.parent_component.status.set_false()
@@ -199,14 +199,15 @@ class Sender():
 
     
 class ClientHandle():
-    #Client socket object which needs the a socket to be oassed in as constructor
-    def __init__(self, socket):
+    #Client socket object which needs the a socket to be passed in as constructor
+    def __init__(self, socket, message_storage):
         self.socket = socket
         self._local_address = socket.getsockname()
         self._remote_address = socket.getpeername()
         self.status = Status(True)
         self._storage = Storage()
         self.sender = Sender(socket, self)
+        self._global_storage = message_storage
 
         self.sender.display_outgoing(False)
 
@@ -219,15 +220,34 @@ class ClientHandle():
 
         self._forwarding_ip = None
         self._forwarding_port = None
+        self._reciever_thread = threading.Thread(target=self.__reciever_thread, daemon=True)
+        # Get the identity card of the client
+        self._id_card = self.__identity_card_retrieval_handshake()
+
+    def __reciever_thread(self):
+        while(True):
+            self.recieve_message()
+    
+    def __identity_card_retrieval_handshake(self):
+
+        # Perform send message to get the identity card
+        protocol = '--GET_IDENTITY_CARD--'
         
+        # Send the protocol 
+        success = self.sender.send(protocol)
+
+        # Wait to recieve the response
+        limit, tries = 7, 0
+        value = self.reciever.recieve()
+        return json.loads(value)
+
+
     def attach_callback(self, callback):
         self.callback = callback
 
-    def load_forwarding_source(self, ip, port):
-        self._forwarding_ip = ip 
-        self._forwarding_port = port
-       
-
+    def get_identity_card(self):
+        return self._id_card
+    
     def send_message(self, message):
         if(self.status.get() == False):
             self.callback(self)
@@ -252,11 +272,10 @@ class ClientHandle():
             self.callback(self)
             return ERROR.RECIEVER
         
-        #self.recieve_event_callback(self)
         value = self.reciever.recieve()
-        #value = self.storage().read_recieved()
+        print(json.loads(value), "\n")
+        self._global_storage.store_message(json.loads(value))
         return value
-
     
     def print(self):
         print("Socket Information:", " Remote: ", self.remote_address())
@@ -281,6 +300,8 @@ class ClientHandle():
         self.status.set_true()
         self.reciever.activate()
         self.sender.activate()
+
+        self._reciever_thread.start()
         
     def close(self):
         self.status.set_false()
@@ -315,15 +336,16 @@ class Listener():
         self.connection_state = Status(False)
         self.callback = None
         self.callback_arg = None
+        self.message_storage = MessageLogStorage()
         self.ip = None
         self.port = None
-
+ 
     def __produce_sockets__(self):
 
         try:
             self.listener_socket.listen()
             client_socket, address = self.listener_socket.accept()
-            new_socket = ClientHandle(client_socket)
+            new_socket = ClientHandle(client_socket, self.message_storage)
             new_socket.open()
             if(self.callback != None): self.callback(new_socket)
             self.client_socket.append(new_socket)
@@ -372,6 +394,9 @@ class Listener():
     def local_address(self):
         return self._local_address
     
+    def access_message_storage(self):
+        return self.message_storage
+    
     def open(self):
         if(self.connection_state.get() == False):
             self.status.set_false()
@@ -384,3 +409,5 @@ class Listener():
         self.status.set_false()
         self.connection_state.set_false()
         self.listener_socket.close()
+
+
