@@ -171,8 +171,10 @@ def clientWatch(cs, client_address):
             output_payload = {
                 "PAYLOAD": {"username": username, "content": payload, "time": datetime.now().strftime('%H:%M:%S')}
                 }
-            print(f"- Sending {output_payload} to {user['username']}")
-            user["socket"].send(json.dumps(output_payload).encode())
+            
+            if(username != user["username"]):
+                print(f"- Sending {output_payload} to {user['username']}")
+                user["socket"].send(json.dumps(output_payload).encode())
 
 while True:
     try:

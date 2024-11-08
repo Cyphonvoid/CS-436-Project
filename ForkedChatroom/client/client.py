@@ -109,83 +109,85 @@ def join_chatroom(username, history, server_socket):
         server_socket.send(json.dumps(message).encode())
 
 
+def client_run():
+    #if __name__ == "__main__":
+        # get the absolute path of the file
+        file_path = os.path.abspath(__file__)
+
+        # get the directory of the file
+        dir_path = os.path.dirname(file_path)
+
+        # set the current working directory to the directory of the file
+        os.chdir(dir_path)
+
+        host_name = "192.168.1.140"
+        port = 18000
+
+        # Creates the TCP socket
+        new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print("Connecting to", host_name, port, "...")
+        new_socket.connect((host_name, port))
+        print("Connected.")
 
 
-if __name__ == "__main__":
-    # get the absolute path of the file
-    file_path = os.path.abspath(__file__)
-
-    # get the directory of the file
-    dir_path = os.path.dirname(file_path)
-
-    # set the current working directory to the directory of the file
-    os.chdir(dir_path)
-
-    host_name = "192.168.1.140"
-    port = 18000
-
-    # Creates the TCP socket
-    new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print("Connecting to", host_name, port, "...")
-    new_socket.connect((host_name, port))
-    print("Connected.")
-
-
-    # Prompt the user for his initial input
-    print("Please select one of the following options:")
-    print("\t1. Get a report of the chatroom from the server.")
-    print("\t2. Request to join the chatroom.")
-    print("\t3. Quit the program.")
-    try:
-        user_input = int(input())
-    except ValueError:
-        print("Error, not a number")
-        exit()
-
-
-    match user_input:
-        case 1:
-            message = {"REPORT_REQUEST_FLAG": 1}
-            new_socket.send(json.dumps(message).encode())
-            response = json.loads(new_socket.recv(1024).decode())
-
-            if("REPORT_RESPONSE_FLAG" not in response):
-                print("Error, REPORT_RESPONSE_FLAG not in message.")
-                exit()
-            try:
-                number = response["NUMBER"]
-                payload = response["PAYLOAD"]
-
-                print(f"There are {number} active users in the chatroom.")
-                iterator = 0
-                while(iterator <= number - 1):
-                    print(f"{iterator + 1}. {payload[iterator]['username']} at IP: {payload[iterator]['ip']} and port: {payload[iterator]['port']}")
-                    iterator+=1
-            except Exception as e:
-                print(e)
-
-
-        case 2:
-            username = input("What is your username: ")
-            output_payload = {"JOIN_REQUEST_FLAG": 1, "USERNAME": username}    
-            new_socket.send(json.dumps(output_payload).encode())
-            response = json.loads(new_socket.recv(1024).decode())
-
-            # Error handling
-            if("JOIN_REJECT_FLAG" in response):
-                print(f"Error, JOIN_REJECT_FLAG, {response['PAYLOAD']}.")
-                exit()
-            if("JOIN_ACCEPT_FLAG" not in response):
-                print("Error, JOIN_ACCEPT_FLAG not in response")
-                exit()
-            
-            # Successful join of chatroom
-            join_chatroom(username=username, history=response['PAYLOAD'], server_socket=new_socket)
-            
-        case 3:
-            print("Goodbye")
+        # Prompt the user for his initial input
+        print("Please select one of the following options:")
+        print("\t1. Get a report of the chatroom from the server.")
+        print("\t2. Request to join the chatroom.")
+        print("\t3. Quit the program.")
+        try:
+            user_input = int(input())
+        except ValueError:
+            print("Error, not a number")
             exit()
- 
-        case _:
-            print("Error, that's not an option!")
-            exit()
+
+
+        match user_input:
+            case 1:
+                message = {"REPORT_REQUEST_FLAG": 1}
+                new_socket.send(json.dumps(message).encode())
+                response = json.loads(new_socket.recv(1024).decode())
+
+                if("REPORT_RESPONSE_FLAG" not in response):
+                    print("Error, REPORT_RESPONSE_FLAG not in message.")
+                    exit()
+                try:
+                    number = response["NUMBER"]
+                    payload = response["PAYLOAD"]
+
+                    print(f"There are {number} active users in the chatroom.")
+                    iterator = 0
+                    while(iterator <= number - 1):
+                        print(f"{iterator + 1}. {payload[iterator]['username']} at IP: {payload[iterator]['ip']} and port: {payload[iterator]['port']}")
+                        iterator+=1
+                except Exception as e:
+                    print(e)
+
+
+            case 2:
+                username = input("What is your username: ")
+                output_payload = {"JOIN_REQUEST_FLAG": 1, "USERNAME": username}    
+                new_socket.send(json.dumps(output_payload).encode())
+                response = json.loads(new_socket.recv(1024).decode())
+
+                # Error handling
+                if("JOIN_REJECT_FLAG" in response):
+                    print(f"Error, JOIN_REJECT_FLAG, {response['PAYLOAD']}.")
+                    exit()
+                if("JOIN_ACCEPT_FLAG" not in response):
+                    print("Error, JOIN_ACCEPT_FLAG not in response")
+                    exit()
+                
+                # Successful join of chatroom
+                join_chatroom(username=username, history=response['PAYLOAD'], server_socket=new_socket)
+                
+            case 3:
+                print("Goodbye")
+                exit()
+    
+            case _:
+                print("Error, that's not an option!")
+                exit()
+
+
+#client_run()
