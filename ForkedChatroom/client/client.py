@@ -40,11 +40,11 @@ def server_listen(server_socket):
             time = msg["PAYLOAD"]["time"]
 
             # Download the file into the downloads folder
-            with open(f"downloads/{filename}", 'w') as f:
+            with open(f"C:\\Users\\yasha\\Downloads\\{filename}", 'w') as f:
                 f.write(content)
 
             # Print the content of the downloaded file
-            with open(f"downloads/{filename}", 'r') as f:
+            with open(f"C:\\Users\\yasha\\Downloads\\{filename}", 'r') as f:
                 print(f"[{time}] {username}: {f.read()}")
             continue
             
@@ -79,14 +79,26 @@ def join_chatroom(username, history, server_socket):
             output_payload = {"QUIT_REQUEST_FLAG": 1, "USERNAME": username}
             server_socket.send(json.dumps(output_payload).encode())
             continue
+
         # If the client wants to send an attachment
         if(user_input == 'a'):
             filename = input("Please enter the file path and name: ")
             try:
-                with open(f"attachments/{filename}", 'r') as f:
-                    attachment = f.read()
-                    output_payload = {"ATTACHMENT_FLAG": 1, "FILENAME": filename, "USERNAME": username, "PAYLOAD": attachment}
-                    server_socket.send(json.dumps(output_payload).encode())
+                ext = filename.split(".")[1]
+                
+                # check if the file is image or text
+                if(ext == "png"):
+                    with open(f"attachments/{filename}", 'wb') as f:
+                        pass
+                    
+                    pass
+                
+                elif(ext == "txt"):
+                    with open(f"attachments/{filename}", 'r') as f:
+                        attachment = f.read()
+                        output_payload = {"ATTACHMENT_FLAG": 1, "FILENAME": filename, "USERNAME": username, "PAYLOAD": attachment}
+                        server_socket.send(json.dumps(output_payload).encode())
+
             except Exception as e:
                 print("Error, that file does not exist.")
                 print(e)
@@ -176,4 +188,4 @@ if __name__ == "__main__":
  
         case _:
             print("Error, that's not an option!")
-            exit();
+            exit()

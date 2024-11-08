@@ -138,7 +138,7 @@ def clientWatch(cs, client_address):
         
         if "ATTACHMENT_FLAG" in msg:
             filename = msg["FILENAME"]
-            with open(f"downloads/{filename}", 'w') as f:
+            with open(f"C:\\Users\\yasha\\Downloads\\{filename}", 'w') as f:
                 f.write(payload)
             
             # Add the message to the chatroom history
@@ -146,15 +146,14 @@ def clientWatch(cs, client_address):
 
             # Send the message to all clients
             for user in active_users:
-                with open(f"downloads/{filename}", 'r') as f:
+                with open(f"C:\\Users\\yasha\\Downloads\\{filename}", 'r') as f:
                     attachment = f.read()
                     output_payload = {"ATTACHMENT_FLAG": 1, "FILENAME": filename, "PAYLOAD": {"username": username, "content": attachment, "time": datetime.now().strftime('%H:%M:%S')}}
                     print(f"- Sending {output_payload} to {user['username']}")
                     user["socket"].send(json.dumps(output_payload).encode())
+
             continue
         
-
-
         # Check if this user is in the active user pool
         is_an_active_user = False
         for user in active_users:
@@ -182,7 +181,7 @@ while True:
         print(client_address, "Connected!")
 
         # Create a thread that listens for each client's messages
-        t = Thread(target=clientWatch, args=(client_socket,client_address,))
+        t = Thread(target=clientWatch, args=(client_socket, client_address,), daemon=True)
         # Make a daemon so thread ends when main thread ends
         t.daemon = True
         t.start()
