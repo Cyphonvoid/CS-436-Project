@@ -237,7 +237,6 @@ class ClientHandle():
         success = self.sender.send(protocol)
 
         # Wait to recieve the response
-        limit, tries = 7, 0
         value = self.reciever.recieve()
         return json.loads(value)
 
@@ -273,7 +272,6 @@ class ClientHandle():
             return ERROR.RECIEVER
         
         value = self.reciever.recieve()
-        print(json.loads(value), "\n")
         self._global_storage.store_message(json.loads(value))
         return value
     

@@ -306,3 +306,87 @@ class ChatroomServer():
 server = MultiClientServer()
 server.run('100.77.41.62', 9999)
 server.close()
+
+
+'''
+def send_message(self, message):
+        if(len(self.clients) == 0):
+            print("[No Clients Available.....]")
+            return None
+        
+        if(self.current_client == None):
+            print("[Current client is None and not selected....]")
+            return None
+        
+        if(message == 'exit'):
+            self.input.close()
+            self.close()
+            return None
+        
+        try:
+            if(self.current_client.state() == True):
+                
+                self.messenger.set_request_message(message)
+                msg = self.messenger.pack_request_body()
+                success = self.current_client.send_message(msg)
+                self.messenger.flush()
+
+                if(success == ERROR.SENDER):
+                    print("[Error recieved in send:", ERROR.SENDER)
+                    return False
+                
+                print("Sent to:", self.current_client.remote_address(), message)
+                return True
+            else:
+                return False
+            
+        except Exception as error:
+            print("[Error recieved in send:", error)
+            return False
+
+'''
+
+'''
+class BaseServerActionSpace():
+
+    def __init__(self):
+        self._space_name = None
+        self._current_request = None
+
+    def request(self, request):
+        self._current_request = request
+
+
+class ChatroomServerActionSpace(BaseServerActionSpace):
+
+    def __init__(self):
+        BaseServerActionSpace.__init__(self)
+    
+    def _assert_is_join_request(self):
+        pass
+
+    def _assert_is_report_request(self):
+        pass
+
+    def _assert_is_quit_request(self):
+        pass
+
+    def _assert_has_attachment(self):
+        pass
+    
+    def _perform_username_removal(self):
+        pass
+
+
+class ServerActions():
+
+    def __init__(self):
+        self._spaces = {}
+
+    def space(self, name):
+        return self._spaces[name]
+    
+    def register_space(self, name, action_space):
+        self._spaces[name] = action_space
+    
+'''

@@ -24,12 +24,89 @@ class Input():
         self.state.set_false()
 
 
+class BaseServerActionSpace():
+
+    def __init__(self):
+        self._space_name = None
+        self._current_request = None
+
+    def request(self, request):
+        self._current_request = request
+        return self
+
+
+class ChatroomServerActionSpace(BaseServerActionSpace):
+
+    def __init__(self, server_reference):
+        BaseServerActionSpace.__init__(self)
+        self._server_reference = server_reference
+    
+    def _assert_is_join_request(self):
+        request = self._current_request['MESSAGE']
+        join_flag = request['JOIN_REQUEST_FLAG']
+        
+        if(join_flag == 0 or join_flag == False):
+            return False
+        
+        elif(join_flag == 1 or join_flag == True):
+            username = self._current_request['MESSAGE']['USERNAME']
+            index = 0
+
+            # If client with same username exists then close that client
+            for client in self._server_reference.clients:
+                if(username == client.get_identity_card()['NAME']):
+                        
+                        # Construct a response to tell that join was declined.
+                        self._server_reference.messenger.flush()
+                        self._server_reference.messenger.set_request_message("Join request declined username isn't unique")
+                        packed_body = self._server_reference.messenger.pack_request_body()
+                        client.send_message(packed_body)
+
+                        # Close the connection after telling them that.
+                        client.close()
+                        print("[server action] {} client closed...".format(username))
+                        self._server_reference.clients.pop(index)
+                        index += 1
+
+            return True
+        
+    def _assert_is_report_request(self):
+        pass
+    
+    def _assert_is_quit_request(self):
+        index = 0
+        quit_msg = self._current_request['MESSAGE']['PAYLOAD']
+        if(quit_msg == '--QUIT--'):
+            for client in self._server_reference.clients:
+                client.close()
+                self._server_reference.clients.pop(index)
+                index += 0
+
+    
+    def _assert_has_attachment(self):
+        pass
+    
+
+    def _assert_remove_identical_clients(self):
+        username = self._current_request['MESSAGE']['USERNAME']
+        index = 0
+        for client in self._server_reference.clients:
+            if(username == client.get_identity_card()['NAME']):
+                    client.close()
+                    print("[server action] {} client closed...".format(username))
+                    self._server_reference.clients.pop(index)
+                    index += 1
+
+    def _assert_close_client(self):
+        pass
+    
 class MultiClientServer():
+    AUTO = 'auto'
 
     def __init__(self):
         self.clients = []
         self.clients_dict = {}
-
+        self.name = 'Server'
         self.client_listener = Listener()
         self.client_listener.attach_event_handler(self.push_new_client)
         self.client_listener.set_limit(10)
@@ -37,22 +114,10 @@ class MultiClientServer():
         self.status = Status(False)
         self.input = Input(True)
         self.processing_thread = threading.Thread(target=self.__request_processing_thread__, daemon=True)
-        self.recieving_thread = threading.Thread(target=self.__reciever_thread, daemon=True)
         self.messenger = Messenger()
+
+        self.chatroom_server_action = ChatroomServerActionSpace(self)
         self.send_all_flag = False
-
-        self.chatroom_mode = False
-
-    def push_new_client(self, client):
-        self.clients.append(client)
-        client.attach_callback(self.server_callback)
-        print(client.remote_address(), " Connected...")
-    
-    def server_callback(self, client):
-        address = client.remote_address()
-        self.filter_clients(client)
-        print(str(address) + " got disconnected....")
-        self.current_client = None
 
     def __request_processing_thread__(self):
         #This thread needs to be synchronized with the main thread when deleting stuff like current client
@@ -62,70 +127,6 @@ class MultiClientServer():
                 self.filter_clients(self.current_client)
                 self.current_client = None
             
-            #if(self.current_client == None):
-            #    time.sleep(0.01)
-                
-    def select_client(self, num):
-
-        try:
-            num = int(num)
-            if(num > len(self.clients)-1 or num < 0):
-                return
-            self.current_client = self.clients[num]
-        except Exception as error:
-            pass
-
-    def close_client(self):
-        self.current_client.close()
-
-        counter = 0; 
-        for client in self.clients:
-            if(client == self.current_client):
-                self.clients.pop(counter)
-            
-            counter+=1
-
-    def display(self):
-        print("         MultiClientServer")
-        print("____________________________________")
-        print("Hosted On:", self.client_listener.local_address())  
-
-        
-    def send_message(self, message):
-        if(len(self.clients) == 0):
-            print("[No Clients Available.....]")
-            return None
-        
-        if(self.current_client == None):
-            print("[Current client is None and not selected....]")
-            return None
-        
-        if(message == 'exit'):
-            self.input.close()
-            self.close()
-            return None
-        
-        try:
-            if(self.current_client.state() == True):
-                
-                #success = self.current_client.send_message(message)
-                self.messenger.set_request_message(message)
-                msg = self.messenger.pack_request_body()
-                success = self.current_client.send_message(msg)
-                self.messenger.flush()
-
-                if(success == ERROR.SENDER):
-                    print("[Error recieved in send:", ERROR.SENDER)
-                    return False
-                
-                print("Sent to:", self.current_client.remote_address(), message)
-                return True
-            else:
-                return False
-        except Exception as error:
-            print("[Error recieved in send:", error)
-            return False
-
 
     def __send_beacon_responses(self, message):
         if(len(message) == 0):
@@ -136,6 +137,7 @@ class MultiClientServer():
 
             for msg in message:
                 username = msg['MESSAGE']['USERNAME']
+
                 for client in self.clients:
                     card = client.get_identity_card()
 
@@ -170,35 +172,28 @@ class MultiClientServer():
 
         return ascending_order_reqs
     
+
     def __perform_server_actions(self, requests):
 
         for request in requests:
-
-            # Check if the user is admin
-            username = request['MESSAGE']['USERNAME']
             
-
             # Check for the available user names
-            username = request['MESSAGE']['USERNAME']
-            index = 0
-            for client in self.clients:
-                if(username == client.get_identity_card()['NAME']):
-                    client.close()
-                    self.clients.pop(index)
-                    index += 1
+            #self.chatroom_server_action.request(request)._assert_remove_identical_clients()
 
-            # Check to see if user wants to quit
-            index = 0
-            quit_msg = request['MESSAGE']['PAYLOAD']
-            if(quit_msg == '--QUIT--'):
-                for client in self.clients:
-                    client.close()
-                    self.clients.pop(index)
-                    index += 0
+            # Check to see if there's a join request 
+            self.chatroom_server_action.request(request)._assert_is_join_request()
+
+            # Check to see if there's report request 
+            #self.chatroom_server_action.request(request)._assert_is_report_request()
             
+            # Check to see if user wants to quit
+            #self.chatroom_server_action.request(request)._assert_is_quit_request()
+
+            # Check to see if user wants to upload image
+
             # Other conditions and rules.....
             pass
-
+        
     def __process_requests(self):
         new_requests = self.client_listener.access_message_storage().read_new_messages()
 
@@ -211,19 +206,8 @@ class MultiClientServer():
         # Relay messages 
         self.__send_beacon_responses(new_requests)
         
-
-    def __reciever_thread(self):
-        while(True):
-
-            # Constantly listen to message and store them globally
-            for client in self.clients:
-                client.recieve_message()
-
-            time.sleep(0.01)
-
     
     def __clients(self):
-
         #Display clients
         counter = 0; 
         for client in self.clients:
@@ -255,7 +239,81 @@ class MultiClientServer():
         print("client dropped", temp.remote_address())
 
 
+    def push_new_client(self, client):
+        self.clients.append(client)
+        client.attach_callback(self.server_callback)
+        print(client.remote_address(), " Connected...")
+    
+
+    def server_callback(self, client):
+        address = client.remote_address()
+        self.filter_clients(client)
+        print(str(address) + " got disconnected....")
+        self.current_client = None
+
+    def select_client(self, num):
+
+        try:
+            num = int(num)
+            if(num > len(self.clients)-1 or num < 0):
+                return
+            self.current_client = self.clients[num]
+        except Exception as error:
+            pass
+
+    def close_client(self):
+        self.current_client.close()
+
+        counter = 0; 
+        for client in self.clients:
+            if(client == self.current_client):
+                self.clients.pop(counter)
+            counter+=1
+
+    def display(self):
+        print("         MultiClientServer")
+        print("____________________________________")
+        print("Hosted On:", self.client_listener.local_address())  
+
+    def send_message(self, message):
+        if(len(self.clients) == 0):
+            print("[No Clients Available.....]")
+            return None
+        
+        if(self.current_client == None):
+            print("[Current client is None and not selected....]")
+            return None
+        
+        if(message == 'exit'):
+            self.input.close()
+            self.close()
+            return None
+        
+        try:
+            if(self.current_client.state() == True):
+                
+                self.messenger.set_request_message(message)
+                msg = self.messenger.pack_request_body()
+                success = self.current_client.send_message(msg)
+                self.messenger.flush()
+
+                if(success == ERROR.SENDER):
+                    print("[Error recieved in send:", ERROR.SENDER)
+                    return False
+                
+                print("Sent to:", self.current_client.remote_address(), message)
+                return True
+            else:
+                return False
+            
+        except Exception as error:
+            print("[Error recieved in send:", error)
+            return False
+        
     def run(self, IP, PORT):
+        if(IP == MultiClientServer.AUTO):
+            IP = socket.gethostbyname(socket.gethostname())
+
         self.status.set_true()
         self.input.open()
         self.client_listener.host_with(IP, PORT)
@@ -285,11 +343,6 @@ class MultiClientServer():
             if(val == '-select all'):
                 self.send_all_flag = True
 
-            if(val == '-chatroom on'):
-                self.chatroom_mode = True
-
-            elif(val == '-chatroom off'):
-                self.chatroom_mode = False
 
             success = None
             if(self.send_all_flag == False):success = self.send_message(val)
@@ -331,5 +384,5 @@ class ChatroomServer():
         pass
 
 server = MultiClientServer()
-server.run('100.77.26.140', 9999)
+server.run(IP=MultiClientServer.AUTO, PORT=9999)
 server.close()

@@ -211,113 +211,7 @@ class Connection():
     def remote_server_address(self):
         return self.socket.getpeername()
     
-import json
-import time
-import copy
-import datetime
 
-class Messenger():
-
-    def __init__(self):
-
-        self._message_headers = {
-            'REPORT_REQUEST_FLAG':None,
-            'REPORT_RESPONSE_FLAG':None,
-            'JOIN_ACCEPT_FLAG':None,
-            'NEW_USER_FLAG':None,
-            'QUIT_REQUEST_FLAG':None,
-            'QUIT_ACCEPT_FLAG':None,
-            'ATTACHMENT_FLAG':None,
-            'NUMBER':None,
-            'USERNAME':None,
-            'FILENAME':None,
-            'PAYLOAD_LENGTH':None,
-            'PAYLOAD':None,
-            'TIME_STAMP':None,
-            'CONVERTED_TIME':None
-        }
- 
-    def flush(self):
-        for key, value in self._message_headers.items():
-            self._message_headers[key] = None
-
-    def set_request_field(self, header, value):
-        # Set any request header value using header
-        self._message_headers[header] = value
-
-    def get_request_field(self, header):
-        # Access any request field using header
-        return self._message_headers[header]
-    
-    def set_request_message(self, message):
-        # Set the message content
-        self._message_headers['PAYLOAD'] = message
-        _time = datetime.datetime.now()
-        self._message_headers['TIME_STAMP'] = "{}H.{}M.{}S.{}MS".format(_time.hour, _time.minute, _time.second, _time.microsecond)
-        self._message_headers['CONVERTED_TIME'] = (((_time.hour * 60 + 14) * 60 + _time.second) * 1000000 + _time.microsecond)
-
-    def get_request_message(self):
-        # Get the message content
-        return self._message_headers['PAYLOAD']
-
-    def get_request_body(self):
-        # Gets the request body as python dict
-        return self._message_headers
-    
-    def set_request_body(self, request_body):
-        if(isinstance(request_body, dict) == True):
-            for key, item in request_body.items():
-                try:
-                    self._message_headers[key] = item
-                except Exception as error:
-                    pass
-        
-        elif(isinstance(request_body, str)):
-            _dict = json.loads(request_body)
-            for key, item in _dict.items():
-                try:self._message_headers[key] = item
-                except Exception as error:pass
-
-    def unpack_request_body(self, message_body):
-        # Re constructs json data into message body and python dictionary to send data
-        body = json.loads(message_body)
-        self._message_headers = body
-
-    def pack_request_body(self):
-        # Constructs the request body into sendable and compiled json data
-        message_string = json.dumps(self._message_headers)
-        return message_string
-    
-
-
-class MessageLogStorage():
-
-    def __init__(self):
-        self._messages = []
-        self._viewed_message_index = 0
-    
-    def store_message(self, message):
-        msg = {
-            'VIEWED':False,
-            'MESSAGE':message,
-            'TIME_STAMP':datetime.datetime.now().strftime("[%H:%M]")
-        }
-
-        self._messages.append(copy.copy(msg))
-    
-    def read_new_messages(self): 
-        new_msgs = []
-        for i in range(self._viewed_message_index, len(self._messages)):
-            viewed = self._messages[i]['VIEWED']
-            
-            if(viewed == False):
-                self._messages[i]['VIEWED'] = True
-                new_msgs.append(self._messages[i])
-
-                self._viewed_message_index += 1
-
-        return new_msgs
-    
 
 
 class WebClient():
@@ -369,7 +263,6 @@ class WebClient():
             
             
     def run(self):
-
         if(self.status.get() == False):
             print("In-active web client can't run")
             return
@@ -412,24 +305,23 @@ class WebClient():
             # --- Sending message using messenger ----
             self.messenger.set_request_message(message)
             self.messenger.set_request_field('USERNAME', self.client_id.read().name())
+
+
             packed_msg = self.messenger.pack_request_body()
             val = self.connection.send_data(packed_msg)
-            print("[SENT]: ", self.messenger.get_request_message())
+            print("[YOU]: ", self.messenger.get_request_message())
             self.messenger.flush()
             # ---- End of the section ----------
 
-
-            #val = self.connection.send_data(message)
-            #print("[SENT]: ", message)
         return val
 
-    def __process_if_protocol_command(self, message):
-
+    def __process_protocol_command(self, message):
         if(message == '--GET_IDENTITY_CARD--' ):
             _id = self.client_id.get_dict()
             sent = self.connection.send_data(json.dumps(_id))
             print("Sent ID CARD....")
             return True
+
 
     def recieve_message(self):
         #Need to detech if the socket on the other side has gone, offline or closed
@@ -437,24 +329,21 @@ class WebClient():
         if(self.connection.active()):
             message = self.connection.recieve_data()
         
+
         # ---- If there's any request as command/protocol
-        _is_command = self.__process_if_protocol_command(message)
+        _is_command = self.__process_protocol_command(message)
         if(_is_command):return
         # ------------------------------------------------------
+        
 
         # --- Use messenger object to process data here in ----- 
-        self.messenger.unpack_request_body(message)
+        self.messenger.set_request_body(message)
+        #self.messenger.unpack_request_body(message)
         username = self.messenger.get_request_field('USERNAME')
         timestamp = self.messenger.get_request_field('TIME_STAMP')
         print("{}:".format(username), self.messenger.get_request_message())
         self.messenger.flush()
-
         # ------------------- End of section ------------------
-
-        '''if(isinstance(message, bool) == False):
-            if(message[0] != '-'):print("[Recieved]: ", message)
-        if(message!= None and isinstance(message, bool) == False): self.process(message)
-        print("[RECIEVED]:", message)'''
         return message
 
     def close(self):
@@ -466,6 +355,6 @@ class WebClient():
 
 
 client = WebClient('Elijah')
-client.connect_to('100.77.26.140', 9999).run()
+client.connect_to('192.168.1.140', 9999).run()
 print("Name:", client.get_card().read().name())
 client.close()

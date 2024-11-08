@@ -8,25 +8,32 @@ class Messenger():
     def __init__(self):
 
         self._message_headers = {
-            'REPORT_REQUEST_FLAG':None,
-            'REPORT_RESPONSE_FLAG':None,
-            'JOIN_ACCEPT_FLAG':None,
-            'NEW_USER_FLAG':None,
-            'QUIT_REQUEST_FLAG':None,
-            'QUIT_ACCEPT_FLAG':None,
-            'ATTACHMENT_FLAG':None,
-            'NUMBER':None,
-            'USERNAME':None,
-            'FILENAME':None,
-            'PAYLOAD_LENGTH':None,
-            'PAYLOAD':None,
-            'TIME_STAMP':None,
-            'CONVERTED_TIME':None
+            'REPORT_REQUEST_FLAG':0,
+            'REPORT_RESPONSE_FLAG':0,
+            'JOIN_ACCEPT_FLAG':0,
+            'JOIN_REJECT_FLAG':0,
+            'JOIN_REQUEST_FLAG':0,
+            'NEW_USER_FLAG':0,
+            'QUIT_REQUEST_FLAG':0,
+            'QUIT_ACCEPT_FLAG':0,
+            'ATTACHMENT_FLAG':0,
+            'NUMBER':0,
+            'USERNAME':'default',
+            'FILENAME':'no file',
+            'PAYLOAD_LENGTH':0,
+            'PAYLOAD':'--null payload--',
+            'TIME_STAMP':'--no time stamp--',
+            'CONVERTED_TIME':0
         }
- 
+
     def flush(self):
         for key, value in self._message_headers.items():
-            self._message_headers[key] = None
+            if(key == 'USERNAME'):self._message_headers[key] = 'default'
+            elif(key == 'FILENAME'):self._message_headers[key] = 'no file'
+            elif(key == 'PAYLOAD'):self._message_headers[key] = '--no payload--'
+            elif(key == 'TIME_STAMP'):self._message_headers[key] = '--no time stamp--'
+            else:self._message_headers[key] = 0
+
 
     def set_request_field(self, header, value):
         # Set any request header value using header
