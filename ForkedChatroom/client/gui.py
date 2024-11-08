@@ -78,6 +78,8 @@ class App(customtkinter.CTk):
     def start_options(self):
         #send message to server here
         data = self.read_input_data()
+        
+        self.display_text("You: " + data)
 
         if(data == "1" or self._choice == "1"):
             self._choice = data
@@ -204,6 +206,7 @@ class App(customtkinter.CTk):
        
         while True:
                 user_input = self.read_input_data()
+                self.display_text("\nYOU: " + user_input)
                 # If the client is attempting to quit
                 if(user_input == 'q'):
                     output_payload = {"QUIT_REQUEST_FLAG": 1, "USERNAME": username}
@@ -266,7 +269,7 @@ class App(customtkinter.CTk):
         self.setup()
         self.mainloop()    
 
-app = App("JOSHUA")
+app = App("JOSH")
 
 #USE IN CODE
 #USE INSTEAD OF self.display_text
