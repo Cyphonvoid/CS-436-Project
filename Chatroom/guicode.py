@@ -61,9 +61,11 @@ app = App()
 
 #USE IN CODE
 #USE INSTEAD OF PRINT
-app.display_text()
+app.display_text('as')
 
 #USE IN MAIN TO START GUI
-app.update_idletasks()
-app.update()
+#app.update_idletasks()
+#app.update()
+
+app.mainloop()
 
