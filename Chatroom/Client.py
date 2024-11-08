@@ -4,8 +4,8 @@ import threading
 import os
 import subprocess
 from Message import Messenger
-import json 
-
+import json
+import customtkinter
 
 CLIENT_EXIT_CODE = '--exit--'
 
@@ -272,15 +272,16 @@ class WebClient():
         print("_____________________________________")
         print("Local Address:", self.local_address)
         print("Connected to:", self.remote_address)
-
         recv_thread = threading.Thread(target=self.__reciever__)
         recv_thread.start()
-        
         val = None
+        val2 = None
         status = None
+        app.update_idletasks()
+        app.update()
         while((self.connection.active() == True) and (self.status.get() == True)):
             val = input()
-            if(val  == CLIENT_EXIT_CODE):
+            if((val  == CLIENT_EXIT_CODE) or (val2 == CLIENT_EXIT_CODE)):
                 self.status.set_false()
                 self.connection.close()
                 break
@@ -306,7 +307,9 @@ class WebClient():
             self.messenger.set_request_field('USERNAME', self.client_id.read().name())
             packed_msg = self.messenger.pack_request_body()
             val = self.connection.send_data(packed_msg)
-            print("[SENT]: ", self.messenger.get_request_message())
+            message2="[SENT]: " + str(self.messenger.get_request_message()) + "\n"
+            app.display_text(message2)
+            print(message2)
             self.messenger.flush()
             # ---- End of the section ----------
 
@@ -338,6 +341,8 @@ class WebClient():
         self.messenger.unpack_request_body(message)
         username = self.messenger.get_request_field('USERNAME')
         timestamp = self.messenger.get_request_field('TIME_STAMP')
+        message = timestamp + " " + username + self.messenger.get_request_message()
+        app.display_text(message)
         print("{}:".format(username), self.messenger.get_request_message())
         self.messenger.flush()
 
@@ -355,9 +360,83 @@ class WebClient():
 
     def get_card(self):
         return self.client_id
+    
+
+
+customtkinter.set_appearance_mode("dark")
+customtkinter.set_default_color_theme("blue")
+    
+class MyFrame(customtkinter.CTkScrollableFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        # add widgets onto the frame...
+        self.frame = customtkinter.CTkFrame(self,width=200, height=200, corner_radius=5, bg_color="grey")
+        self.frame.grid(row=0, column=0, padx=20)
+
+class App(customtkinter.CTk):
+    def __init__(self):
+        super().__init__()
+
+        self.exitcode = ' '
+        self.button_pressed = 0
+
+        self.title("Chat Room")
+        self.geometry("1280x720")
+
+       
+        #Textbox
+        self.textbox = customtkinter.CTkTextbox(master=self, width=1000, height=500, font = ("Arial", 20), text_color="white",wrap = "word", state = "disabled")
+        self.textbox.place(relx = 0.1, rely = 0.1, anchor = "nw")
+        
+        
+        #Send Button
+        self.message_frame = customtkinter.CTkFrame(self,width=1280, height=70, corner_radius=1, bg_color="grey")
+        self.message_frame.pack(side = "bottom", padx=20, pady=10)
+        self.button = customtkinter.CTkButton(master=self.message_frame, text="Send", command=self.button_callback, width = 200, height = 50, font = ("Arial", 20), text_color="white", fg_color="grey")
+        self.button.place(relx = 0.825, rely = 0.89, anchor = "sw")
+
+        #Exit Button
+        self.button = customtkinter.CTkButton(master=self, text="EXIT", command=self.exit_button, width = 100, height = 50, font = ("Arial", 20), text_color="white", fg_color="grey")
+        self.button.place(relx = 0.975, rely = 0.025, anchor = "ne")
+
+        #User Input
+        self.text_entry = customtkinter.CTkEntry(master=self.message_frame, placeholder_text= "Input Message Here", width = 1000, height = 50, font = ("Arial", 20), text_color="white", fg_color="grey")
+        self.text_entry_frame = customtkinter.CTkFrame(self)
+        self.text_entry.place(relx = 0.01, rely = 0.89, anchor = "sw")
+        
+    def button_callback(self):
+        client.send_message(self.text_entry.get())
+        if self.text_entry.get() == CLIENT_EXIT_CODE:
+            self.exitcode = self.text_entry.get()
+        #print(f"Adam said: {self.text_entry.get()}")
+        #self.display_text(self.text_entry.get())
+        self.text_entry.delete(0,(len(self.text_entry.get())))
+        self.button_pressed = 1
+    
+    def display_text(self,message):
+        self.textbox.configure(state="normal")
+        self.textbox.insert('end',message)
+        self.textbox.configure(state="disabled")
+
+    def exit_button(self):
+        client.status.set_false()
+        client.connection.close()
+
+        print("           Web Client Closed")
+        print("______________________________________")
+        print("Name:", client.get_card().read().name())
+        client.close()
+        self.destroy()
+    
+
+app = App()
+#app.mainloop()
+#app.update_idletasks()
+#app.update()
 
 
 client = WebClient('Jaedon')
-client.connect_to('100.77.26.140', 9999).run()
-print("Name:", client.get_card().read().name())
-client.close()
+client.connect_to('192.168.1.54', 9999).run()
+# print("Name:", client.get_card().read().name())
+# client.close()
