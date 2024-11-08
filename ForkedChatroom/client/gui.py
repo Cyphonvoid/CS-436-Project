@@ -142,7 +142,7 @@ class App(customtkinter.CTk):
 
             # If the socket connection was closed by the client, stop the thread
             if not data:
-                self.display_text("Server disconnected!")
+                self.display_text("\nServer disconnected!")
                 return
             
             msg = json.loads(data)
@@ -154,13 +154,13 @@ class App(customtkinter.CTk):
             
             if("USER_QUIT_FLAG" in msg):
                 username = msg["PAYLOAD"]["username"]
-                self.display_text(f"[SERVER]: User {username} has left the chatroom.")
+                self.display_text(f"\n[SERVER]: User {username} has left the chatroom.")
                 continue
             
             if("USER_JOINED_FLAG" in msg):
                 username = msg["PAYLOAD"]["username"]
                 time = msg["PAYLOAD"]["time"]
-                self.display_text(f"[{time}] Server: {username} has joined the chatroom.")
+                self.display_text(f"\n[{time}] Server: {username} has joined the chatroom.")
                 continue
 
             # If the server has send an attachment
@@ -182,7 +182,7 @@ class App(customtkinter.CTk):
             username = msg["PAYLOAD"]["username"]
             content = msg["PAYLOAD"]["content"]
             time = msg["PAYLOAD"]["time"]
-            self.display_text(f"[{time}] {username}: {content}")
+            self.display_text(f"\n[{time}] {username}: {content}")
     
     def join_chatroom(self, username, history, server_socket):
         self.display_text("\tThe server welcomes you to the chatroom.")
