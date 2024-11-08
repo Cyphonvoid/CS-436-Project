@@ -28,6 +28,8 @@ class MultiClientServer():
 
     def __init__(self):
         self.clients = []
+        self.clients_dict = {}
+
         self.client_listener = Listener()
         self.client_listener.attach_event_handler(self.push_new_client)
         self.client_listener.set_limit(10)
@@ -152,6 +154,7 @@ class MultiClientServer():
                 card = client.get_identity_card()
                 if(card['NAME'] != username):
                     # Send text data here
+                    self.messenger.set_request_body(msg['MESSAGE'])
                     packed_msg = self.messenger.pack_request_body(message)
                     client.send_message(packed_msg)
 
@@ -171,15 +174,31 @@ class MultiClientServer():
 
         for request in requests:
 
-            # Check if the user wants to be admin
+            # Check if the user is admin
+            username = request['MESSAGE']['USERNAME']
+            
 
             # Check for the available user names
+            username = request['MESSAGE']['USERNAME']
+            index = 0
+            for client in self.clients:
+                if(username == client.get_identity_card()['NAME']):
+                    client.close()
+                    self.clients.pop(index)
+                    index += 1
 
             # Check to see if user wants to quit
-
-            # Other conditions and rules.....
-            break
+            index = 0
+            quit_msg = request['MESSAGE']['PAYLOAD']
+            if(quit_msg == '--QUIT--'):
+                for client in self.clients:
+                    client.close()
+                    self.clients.pop(index)
+                    index += 0
             
+            # Other conditions and rules.....
+            pass
+
     def __process_requests(self):
         new_requests = self.client_listener.access_message_storage().read_new_messages()
 

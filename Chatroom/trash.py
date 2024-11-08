@@ -142,7 +142,7 @@ class MultiClientServer():
         else:
             username = message['MESSAGE']['USERNAME']
             for client in self.clients:
-                if(client.)
+               
                 # Send text data here
                 packed_msg = self.messenger.pack_request_body(message)
                 client.send_message(packed_msg)

@@ -308,6 +308,7 @@ class ClientHandle():
         self.sender.shutdown()
         self.reciever.shutdown()
         self.socket.close()
+        self._reciever_thread.join()
     
     def display_messages(self, val):
         self._display_messages = val
