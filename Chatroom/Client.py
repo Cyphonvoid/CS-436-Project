@@ -4,7 +4,7 @@ import threading
 import os
 import subprocess
 from Message import Messenger
-import json
+import json 
 import customtkinter
 
 CLIENT_EXIT_CODE = '--exit--'
@@ -211,6 +211,114 @@ class Connection():
     def remote_server_address(self):
         return self.socket.getpeername()
     
+import json
+import time
+import copy
+import datetime
+
+class Messenger():
+
+    def __init__(self):
+
+        self._message_headers = {
+            'REPORT_REQUEST_FLAG':None,
+            'REPORT_RESPONSE_FLAG':None,
+            'JOIN_ACCEPT_FLAG':None,
+            'NEW_USER_FLAG':None,
+            'QUIT_REQUEST_FLAG':None,
+            'QUIT_ACCEPT_FLAG':None,
+            'ATTACHMENT_FLAG':None,
+            'NUMBER':None,
+            'USERNAME':None,
+            'FILENAME':None,
+            'PAYLOAD_LENGTH':None,
+            'PAYLOAD':None,
+            'TIME_STAMP':None,
+            'CONVERTED_TIME':None
+        }
+ 
+    def flush(self):
+        for key, value in self._message_headers.items():
+            self._message_headers[key] = None
+
+    def set_request_field(self, header, value):
+        # Set any request header value using header
+        self._message_headers[header] = value
+
+    def get_request_field(self, header):
+        # Access any request field using header
+        return self._message_headers[header]
+    
+    def set_request_message(self, message):
+        # Set the message content
+        self._message_headers['PAYLOAD'] = message
+        _time = datetime.datetime.now()
+        self._message_headers['TIME_STAMP'] = "{}H.{}M.{}S.{}MS".format(_time.hour, _time.minute, _time.second, _time.microsecond)
+        self._message_headers['CONVERTED_TIME'] = (((_time.hour * 60 + 14) * 60 + _time.second) * 1000000 + _time.microsecond)
+
+    def get_request_message(self):
+        # Get the message content
+        return self._message_headers['PAYLOAD']
+
+    def get_request_body(self):
+        # Gets the request body as python dict
+        return self._message_headers
+    
+    def set_request_body(self, request_body):
+        if(isinstance(request_body, dict) == True):
+            for key, item in request_body.items():
+                try:
+                    self._message_headers[key] = item
+                except Exception as error:
+                    pass
+        
+        elif(isinstance(request_body, str)):
+            _dict = json.loads(request_body)
+            for key, item in _dict.items():
+                try:self._message_headers[key] = item
+                except Exception as error:pass
+
+    def unpack_request_body(self, message_body):
+        # Re constructs json data into message body and python dictionary to send data
+        body = json.loads(message_body)
+        self._message_headers = body
+
+    def pack_request_body(self):
+        # Constructs the request body into sendable and compiled json data
+        message_string = json.dumps(self._message_headers)
+        return message_string
+    
+
+
+class MessageLogStorage():
+
+    def __init__(self):
+        self._messages = []
+        self._viewed_message_index = 0
+    
+    def store_message(self, message):
+        msg = {
+            'VIEWED':False,
+            'MESSAGE':message,
+            'TIME_STAMP':datetime.datetime.now().strftime("[%H:%M]")
+        }
+
+        self._messages.append(copy.copy(msg))
+    
+    def read_new_messages(self): 
+        new_msgs = []
+        for i in range(self._viewed_message_index, len(self._messages)):
+            viewed = self._messages[i]['VIEWED']
+            
+            if(viewed == False):
+                self._messages[i]['VIEWED'] = True
+                new_msgs.append(self._messages[i])
+
+                self._viewed_message_index += 1
+
+        return new_msgs
+    
+
 
 class WebClient():
 
@@ -272,16 +380,17 @@ class WebClient():
         print("_____________________________________")
         print("Local Address:", self.local_address)
         print("Connected to:", self.remote_address)
+
         recv_thread = threading.Thread(target=self.__reciever__)
         recv_thread.start()
+        
         val = None
-        val2 = None
         status = None
         app.update_idletasks()
         app.update()
         while((self.connection.active() == True) and (self.status.get() == True)):
             val = input()
-            if((val  == CLIENT_EXIT_CODE) or (val2 == CLIENT_EXIT_CODE)):
+            if(val  == CLIENT_EXIT_CODE):
                 self.status.set_false()
                 self.connection.close()
                 break
@@ -341,8 +450,6 @@ class WebClient():
         self.messenger.unpack_request_body(message)
         username = self.messenger.get_request_field('USERNAME')
         timestamp = self.messenger.get_request_field('TIME_STAMP')
-        message = timestamp + " " + username + self.messenger.get_request_message()
-        app.display_text(message)
         print("{}:".format(username), self.messenger.get_request_message())
         self.messenger.flush()
 
@@ -436,7 +543,7 @@ app = App()
 #app.update()
 
 
-client = WebClient('Jaedon')
+client = WebClient('Elijah')
 client.connect_to('192.168.1.54', 9999).run()
 # print("Name:", client.get_card().read().name())
 # client.close()
